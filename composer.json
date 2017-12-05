@@ -1,5 +1,12 @@
 {
+    "name": "ubuntu/workspace",
     "require": {
         "fabpot/goutte": "^3.2"
-    }
+    },
+    "authors": [
+        {
+            "name": "marcpre",
+            "email": "marcus.presich@gmail.com"
+        }
+    ]
 }

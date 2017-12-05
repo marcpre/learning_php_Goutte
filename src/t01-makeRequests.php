@@ -1,7 +1,12 @@
+<?php
+require_once 'vendor/autoload.php';
+
 use Goutte\Client;
 
 $client = new Client();
 
-$crawler = $client->request('GET', 'https://www.symfony.com/blog/');
+$crawler = $client->request('GET', 'http://coinmarketcap.com/');
 
-print($crawler)
+$crawler->filter('td.no-wrap.currency-name > a')->each(function ($node) {
+    print $node->text()."\n";
+});

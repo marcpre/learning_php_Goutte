@@ -10,19 +10,19 @@ $url = 'td.no-wrap.currency-name > a';
 $symbol = 'td.text-left.col-symbol';
 $price = 'td:nth-child(5) > a';
 
-
-
 $crawler = $client->request('GET', 'https://coinmarketcap.com/all/views/all/');
-/*
+
 $crawler->filter($coin)->each(function ($node) {
     print $node->text()."\n";
 });
-*/
+
 $crawler->filter($url)->each(function ($node) {
-    print $node->text()."\n";
+    $link = $node->link();
+    $uri = $link->getUri();
+    print $uri."\n";
 });
 
-/*
+
 $crawler->filter($symbol)->each(function ($node) {
     print $node->text()."\n";
 });
@@ -30,4 +30,4 @@ $crawler->filter($symbol)->each(function ($node) {
 $crawler->filter($price)->each(function ($node) {
     print $node->text()."\n";
 });
-*/
+

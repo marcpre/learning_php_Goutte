@@ -114,7 +114,7 @@ function convertDateAndTimeToTimestamp(array $dateArr, array $timeArr)
         }
         array_push($resArr, $timestamp);
     }
-    return array($resArr);
+    return $resArr;
 }
 
 // $currency = $subCrawler->filter('calendar__cell calendar__currency currency ')->text();
@@ -188,7 +188,7 @@ foreach ($currArray as $key => $v) {
     /* if(empty($impactArray[$key])) {
         $impactArray[$key] = "lolonator";
     } */
-    $multi[] = [$dateArray[$key], $timeArray[$key], $currArray[$key], $reportArray[$key], $actualArray[$key], $forecastArray[$key], $impactArray[$key]];
+    $multi[] = [$dateArray[$key], $timeArray[$key], $timestampArr[$key], $currArray[$key], $impactArray[$key], $reportArray[$key], $actualArray[$key], $forecastArray[$key], $previousArray[$key]];
 }
 $json_data = json_encode($multi);
 file_put_contents('data/forexfactory.json', $json_data);

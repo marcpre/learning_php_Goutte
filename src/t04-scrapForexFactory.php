@@ -5,56 +5,6 @@ use Goutte\Client;
 
 $client = new Client();
 
-$url = 'body > div.container > div > div > ul.list-group.mb-5 > a';
-
-//arrays
-$resultArr = array();
-$currArray = array();
-/*
-$fp = fopen('data/morningbrew.csv', 'w');
-
-// 23
-for ($i = 1; $i <= 23; $i++) {
-    $crawler = $client->request('GET', 'https://www.morningbrew.com/archive?newsletter=daily&page=' . $i);
-    $urlArr = array();
-    $crawler->filter($url)->each(function ($node) use (&$urlArr) {
-        $link = $node->link();
-        $uri = $link->getUri();
-        array_push($urlArr, $uri);
-    });
-    foreach ($urlArr as $key => $v) {
-        try {
-
-            $subCrawler = $client->request('GET', $urlArr[$key]);
-            $intro = $subCrawler->filter('.pcard')
-                ->filter('table:nth-child(4)')
-                ->text();
-            $date = $subCrawler->filter('.pcard')
-                ->filter('table:first-child')
-                ->filter('td:first-child')
-                ->text();
-            // if (!empty($intro) || !eympty($date)) {
-            print("##########################################");
-            print(trim($intro) . " - " . trim($date) . " - " . $urlArr[$key] . "\n");
-            // fputcsv($fp, [ trim($intro), trim($date), $urlArr[$key]]);
-            array_push($resultArr,  [ trim($intro), trim($date), $urlArr[$key]]);
-            // }
-        } catch (Exception $e) {
-            // Node list is empty
-            print($e);
-        }
-    }
-}
-$json_data = json_encode($resultArr);
-file_put_contents('data/morningbrew.json', $json_data);
-print("##########################################");
-print("DONE!");
-*/
-/**
- * Example
- *
- *
- */
 $subCrawler = $client->request('GET', 'https://www.forexfactory.com/calendar.php?month=nov.2019');
 
 $currArray = array();
@@ -190,6 +140,10 @@ foreach ($currArray as $key => $v) {
     } */
     $multi[] = [$dateArray[$key], $timeArray[$key], $timestampArr[$key], $currArray[$key], $impactArray[$key], $reportArray[$key], $actualArray[$key], $forecastArray[$key], $previousArray[$key]];
 }
+
+// ***************************
+// *********Reporting*********
+// ***************************
 $json_data = json_encode($multi);
 file_put_contents('data/forexfactory.json', $json_data);
 
@@ -200,14 +154,3 @@ foreach ($multi as $fields) {
 }
 fclose($fp);
 
-/*
-foreach ($currArray as $key => $v) {
-
-}
-
-$date = $subCrawler->filter('.pcard')
-    ->filter('table:first-child')
-    ->filter('td:first-child')
-    ->text();
-*/
-// array_push($introArr, trim($intro), trim($date));

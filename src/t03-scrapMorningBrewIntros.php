@@ -39,9 +39,14 @@ for ($i = 1; $i <= 23; $i++) {
             // fputcsv($fp, [ trim($intro), trim($date), $urlArr[$key]]);
             array_push($resultArr,  [ trim($intro), trim($date), $urlArr[$key]]);
             // }
+            $fp = fopen('data/morningbres.csv', 'w');
+            foreach ($resultArr as $fields) {
+                fputcsv($fp, $fields, ";");
+            }
+            fclose($fp);
         } catch (Exception $e) {
             // Node list is empty
-            print($e);
+            // print($e);
         }
     }
 }

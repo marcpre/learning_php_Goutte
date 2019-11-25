@@ -3,9 +3,9 @@ require_once 'vendor/autoload.php';
 
 use Goutte\Client;
 
+$dateFuture = date('MY', strtotime(' + 7 days'));
 $client = new Client();
-
-$subCrawler = $client->request('GET', 'https://www.forexfactory.com/calendar.php?month=nov.2019');
+$subCrawler = $client->request('GET', 'https://www.forexfactory.com/calendar.php?month=' . $dateFuture);
 
 $currArray = array();
 $impactArray = array();

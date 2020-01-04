@@ -1,19 +1,18 @@
 <?php
 require 'vendor/autoload.php';
+
 use Goutte\Client;
 use Symfony\Component\DomCrawler\Crawler;
 
-
-// $x = 1;
-// $LIMIT = 20;
-
+$x = 1;
+$LIMIT = 20;
 // $t = date(MY);
 // $dateFuture = strtotime("+7 day", date(MY));
 
 /**
  * @param Crawler $crawler
  */
-function crawlForexFactoryDetails(Crawler $crawler)
+function crawlForexFactoryDetails()
 {
     $dateFuture = date('MY', strtotime(' + 7 days'));
     $client = new Client();
@@ -22,11 +21,11 @@ function crawlForexFactoryDetails(Crawler $crawler)
     $resArray = array();
     $TEMP = array();
     $crawler->filter('.calendar_row')->each(function ($node) {
-        // global $x;
-        // global $LIMIT;
+        global $x;
+        global $LIMIT;
         global $resArray;
         global $TEMP;
-        // $x++;
+        $x++;
 
         $EVENTID = $node->attr('data-eventid');
 
@@ -68,15 +67,15 @@ HTML;
 
         });
 
-        /*
-        if($x>$LIMIT){
-            echo "<pre>"; var_dump($resArray); echo "</pre>";
+        if ($x > $LIMIT) {
+            echo "<pre>";
+            var_dump($resArray);
+            echo "</pre>";
             exit;
         }
-        */
 
     });
     return $resArray;
 }
 
-crawlForexFactoryDetails($crawler);
+crawlForexFactoryDetails();

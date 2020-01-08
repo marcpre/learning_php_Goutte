@@ -4,7 +4,13 @@ require 'vendor/autoload.php';
 use Goutte\Client;
 use Symfony\Component\DomCrawler\Crawler;
 
-function updateCalendarDetailsData()
+/**
+ * Crawls Detail Calender
+ * Does NOT also include wanted Date in the final result set
+ * @param $wantedDate
+ * @return array
+ */
+function updateCalendarDetailsData($wantedDate)
 {
     try {
         $client = new Client();
@@ -29,8 +35,23 @@ function updateCalendarDetailsData()
 
             $count = $crawler->filter('.calendar_row')->count();
             $i = 1; // count starts at 1
-            $crawler->filter('.calendar_row')->each(function ($node) use ($count, $i, &$res1Array) {
+            $nodeDate = date();
+            $crawler->filter('.calendar_row')->each(function ($node) use ($count, $i, &$res1Array, $wantedDate, $nodeDate) {
                 $EVENT = array();
+
+                // check date for month
+                $dayMonth = str_split(explode(" ",trim($node->getNode(0)->nodeValue))[0], 3);
+                $day = explode(" ",trim($node->getNode(0)->nodeValue))[1];
+                if (is_numeric($day)) {
+                    $nodeDate = date("Y-m-d H:i:s", strtotime($dayMonth[0] . " " . $dayMonth[1] . " " . $day));
+                }
+
+                // return if wanted date is reached
+                if(date("Y-m-d", strtotime($nodeDate)) == date("Y-m-d", strtotime($wantedDate))) {
+                    return $res1Array;
+                }
+
+                // explode(" ",trim($node->getNode(0)->nodeValue))
 
                 $EVENTID = $node->attr('data-eventid');
 
@@ -103,4 +124,4 @@ HTML;
     return $res1Array;
 }
 
-updateCalendarDetailsData();
+updateCalendarDetailsData(date("2020-01-02"));

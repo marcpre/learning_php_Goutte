@@ -1,127 +1,214 @@
 <?php
+
 require 'vendor/autoload.php';
 
 use Goutte\Client;
 use Symfony\Component\DomCrawler\Crawler;
 
-/**
- * Crawls Detail Calender
- * Does NOT also include wanted Date in the final result set
- * @param $wantedDate
- * @return array
- */
-function updateCalendarDetailsData($wantedDate)
+class CalendarParser
 {
-    try {
-        $client = new Client();
 
-        $x = 1;
-        $LIMIT = 3;
-        global $x;
-        global $LIMIT;
-        $x++;
-        $res1Array = array();
+    const BASE_URL = 'https://www.forexfactory.com/calendar.php?month=%s';
 
-        $ffUrlArr = ["https://www.forexfactory.com/calendar.php?month=Jan2020"];
-        foreach ($ffUrlArr as $key => $v) {
+    /**
+     * @var
+     */
+    private $client;
 
-            try {
-                $crawler = $client->request('GET', $ffUrlArr[$key]);
-            } catch (\Exception $ex) {
-                error_log($ex);
-            }
+    /**
+     * @var DateTime
+     */
+    private $calendarMonth;
 
-            $TEMP = array();
+    /**
+     * @var Crawler
+     */
+    private $page;
 
-            $count = $crawler->filter('.calendar_row')->count();
-            $i = 1; // count starts at 1
-            $nodeDate = date();
-            $crawler->filter('.calendar_row')->each(function ($node) use ($count, $i, &$res1Array, $wantedDate, $nodeDate) {
-                $EVENT = array();
+    /**
+     * @var Crawler
+     */
+    private $table;
 
-                // check date for month
-                $dayMonth = str_split(explode(" ",trim($node->getNode(0)->nodeValue))[0], 3);
-                $day = explode(" ",trim($node->getNode(0)->nodeValue))[1];
-                if (is_numeric($day)) {
-                    $nodeDate = date("Y-m-d H:i:s", strtotime($dayMonth[0] . " " . $dayMonth[1] . " " . $day));
-                }
+    /**
+     * @var array
+     */
+    private $dateIndexes;
 
-                // return if wanted date is reached
-                if(date("Y-m-d", strtotime($nodeDate)) == date("Y-m-d", strtotime($wantedDate))) {
-                    return $res1Array;
-                }
+    /**
+     * CalendarParser constructor.
+     *
+     * @param DateTime $calendarMonth
+     * @throws Exception
+     */
+    public function __construct(DateTime $calendarMonth)
+    {
+        $this->client = new Client();
+        $this->calendarMonth = $calendarMonth;
 
-                // explode(" ",trim($node->getNode(0)->nodeValue))
+        // Fetch page and table data and store it so we can iterate over it.
+        $this->page = $this->client->request('GET', sprintf(self::BASE_URL, $this->calendarMonth->format('MY')));
+        $this->table = $this->page->filter('.calendar_row');
 
-                $EVENTID = $node->attr('data-eventid');
+        // Get date indexes
+        $this->generateDateIndexes();
+    }
 
-                $API_RESPONSE = file_get_contents('https://www.forexfactory.com/flex.php?do=ajax&contentType=Content&flex=calendar_mainCal&details=' . $EVENTID);
+    /**
+     * The table uses a class called `newday` at each new date which can be used to create an index of
+     * where the date records begin which makes parsing easier.
+     */
+    private function generateDateIndexes()
+    {
+        $dateIndexes = [];
 
-                $API_RESPONSE = str_replace("<![CDATA[", "", $API_RESPONSE);
-                $API_RESPONSE = str_replace("]]>", "", $API_RESPONSE);
+        $previousDate = null;
+        $this->table
+            /**
+             * NOTE: This is a closure function which will be called until the foreach completes.
+             *       You cannot break out of it like when you do `foreach() { break; }`.
+             *       If you do `return` - it will simply skip executing the rest of the function but won't break the cycle.
+             */
+            ->each(function (Crawler $node, $index) use (&$dateIndexes, &$previousDate) {
+                $isNewDateSeparator = strpos($node->getNode(0)->getAttribute('class'), 'newday') !== false;
 
-                $html = <<<HTML
-<!DOCTYPE html>
-<html>
-    <body>
-       $API_RESPONSE
-    </body>
-</html>
-HTML;
+                if ($isNewDateSeparator) {
+                    // Convert the date to `Jan-1-STARTING_YEAR` to be easier to search in the array.
+                    $dateColumnNode = $node->filter('.date > span > span');
+                    $stringDate = str_replace(' ', '-', $dateColumnNode->text()) . '-' . $this->calendarMonth->format('Y');
+                    $date = date_create_from_format('M-d-Y', $stringDate);
+                    $formattedDate = $date->format('Y-m-d');
 
-                $subcrawler = new Crawler($html);
+                    $dateIndexes[$formattedDate] = [
+                        'start' => $index,
+                        'end'   => null
+                    ];
 
-                $subcrawler->filter('.calendarspecs__spec')->each(function ($LEFT_TD) use (&$res1Array, &$TEMP, &$EVENT) {
-
-                    $LEFT_TD_INNER_TEXT = trim($LEFT_TD->text());
-
-                    if ($LEFT_TD_INNER_TEXT == "Source") {
-
-                        $TEMP = array();
-                        $LEFT_TD->nextAll()->filter('a')->each(function ($LINK) use (&$TEMP) {
-                            array_push($TEMP, $LINK->text(), $LINK->attr('href'));
-                        });
-
-                        $EVENT['sourceTEXT'] = $TEMP[0];
-                        $EVENT['sourceURL'] = $TEMP[1];
-                        $EVENT['latestURL'] = $TEMP[3];
+                    if ($previousDate) {
+                        $dateIndexes[$previousDate]['end'] = ($index - 1);
                     }
 
-                    if ($LEFT_TD_INNER_TEXT == "Measures") {
-                        $EVENT['measures'] = $LEFT_TD->nextAll()->text();
-                    }
-
-                    if ($LEFT_TD_INNER_TEXT == "Usual Effect") {
-                        $EVENT['usual_effect'] = $LEFT_TD->nextAll()->text();
-                    }
-
-                    if ($LEFT_TD_INNER_TEXT == "Frequency") {
-                        $EVENT['frequency'] = $LEFT_TD->nextAll()->text();
-                    }
-
-                    if ($LEFT_TD_INNER_TEXT == "Why Traders") {
-                        $EVENT['why_traders_care'] = $LEFT_TD->nextAll()->text();
-                    }
-
-                    if ($LEFT_TD_INNER_TEXT == "Derived Via") {
-                        $EVENT['derived_via'] = $LEFT_TD->nextAll()->text();
-                        // array_push($res1Array, $EVENT); // <---- HERE I GET THE ERROR!
-                    }
-                });
-                $i++;
-                if ($i > $count) {
-                    echo "<pre>";
-                    var_dump($res1Array);
-                    print_r($res1Array);
-                    echo "</pre>";
-                    exit;
+                    $previousDate = $formattedDate;
                 }
             });
-        }
-    } catch (\Exception $ex) {
-        error_log($ex);
+
+        $this->dateIndexes = $dateIndexes;
     }
-    return $res1Array;
+
+    /**
+     * @param Crawler $row
+     * @return array
+     */
+    private function processEvent(DateTime $date, Crawler $row)
+    {
+        $eventId = $row->attr('data-eventid');
+
+        $event = [
+            'eventId'          => $eventId,
+            'date'             => $date->format('Y-m-d'),
+            'sourceTEXT'       => null,
+            'sourceURL'        => null,
+            'latestURL'        => null,
+            'measures'         => null,
+            'usual_effect'     => null,
+            'derived_via'      => null,
+            'why_traders_care' => null,
+            'frequency'        => null
+        ];
+
+        $content = $this->client->request('GET', 'https://www.forexfactory.com/flex.php?do=ajax&contentType=Content&flex=calendar_mainCal&details=' . $eventId)
+            ->html();
+        $crawler = new Crawler($content, null, null);
+
+        $table = $crawler->filter('.calendarspecs__spec')->first()->closest('table');
+
+        $table->filter('tr')
+            ->each(function (Crawler $tr) use (&$event) {
+                $label = $tr->filter('.calendarspecs__spec')->text();
+
+                $description = $tr->filter('.calendarspecs__specdescription');
+
+                if ($label === 'Source') {
+                    $TEMP = [];
+                    $description->filter(' a')
+                        ->each(function ($link) use (&$TEMP) {
+                            array_push($TEMP, $link->text(), $link->attr('href'));
+                        });
+
+                    $event['sourceTEXT'] = $TEMP[0];
+                    $event['sourceURL'] = $TEMP[1];
+                    $event['latestURL'] = $TEMP[3];
+                }
+
+                if ($label == "Measures") {
+                    $event['measures'] = $description->text();
+                }
+
+                if ($label == "Usual effect") {
+                    $event['usual_effect'] = $description->text();
+                }
+
+                if ($label == "Frequency") {
+                    $event['frequency'] = $description->text();
+                }
+
+                // this is how it's returned.
+                if ($label == "Why TradersCare") {
+                    $event['why_traders_care'] = $description->text();
+                }
+
+                if ($label == "derived via") {
+                    $event['derived_via'] = $description->text();
+                }
+
+            });
+
+        return $event;
+    }
+
+    /**
+     * Get the events between a start and end date.
+     * If no endDate is defined - then it will get all events since $startDate.
+     *
+     * @param DateTime $startDate
+     * @param DateTime|null $endDate
+     *
+     * @return array
+     */
+    public function getEventsBetweenDates(DateTime $startDate, DateTime $endDate = null)
+    {
+        $events = [];
+
+        $totalCalendarRows = $this->table->count();
+        foreach ($this->dateIndexes as $stringDate => $range) {
+            $date = date_create_from_format('Y-m-d', $stringDate);
+
+            // Process only the range from the start date
+            if ($date >= $startDate) {
+                // and break early when we reach the end.
+                if ($endDate && $date > $endDate) {
+                    break;
+                }
+
+                // collect and process events for the current date
+                $start = $range['start'];
+                $end = $range['end'] !== null ? $range['end'] : $totalCalendarRows;
+                for ($i = $start; $i < $end; $i++) {
+                    $events[] = $this->processEvent($date, new Crawler($this->table->getNode($i)));
+                }
+            }
+        }
+
+        return $events;
+    }
+
 }
 
-updateCalendarDetailsData(date("2020-01-02"));
+$parser = new CalendarParser(date_create());
+
+var_dump(
+    $parser->getEventsBetweenDates(
+        date_create_from_format('Y-m-d H:i:s', '2020-01-03 00:00:00'),
+        date_create_from_format('Y-m-d H:i:s', '2020-01-08 23:59:59')
+    )
+);

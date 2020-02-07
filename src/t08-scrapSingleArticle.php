@@ -9,8 +9,9 @@ $url = "https://seekingalpha.com/news/3539376-pais-c-band-plan-gets-majority-sup
 $client = new Client();
 $content = $client->request('GET', $url)->html();
 $crawler = new Crawler($content, null, null);
-$arti = $crawler->filter("#bullets_ul")->first();
+// $arti = $crawler->filter("#bullets_ul")->first();
 
-// how to get the content from the $crawler
-
-
+$TEMP = [];
+$crawler->filter('#bullets_ul')->each(function ($artic) use (&$TEMP) {
+    array_push($TEMP, $artic->text());
+});

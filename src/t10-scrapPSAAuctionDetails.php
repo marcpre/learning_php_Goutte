@@ -1,4 +1,9 @@
 <?php
+/**
+DOES NOT WORK FOR JAVASCRIPT
+ */
+
+
 require_once '../vendor/autoload.php';
 
 use Symfony\Component\DomCrawler\Crawler;
@@ -9,26 +14,34 @@ try {
     $resArr = array();
     $tempArr = array();
 
-    $url = "https://edikte.justiz.gv.at/edikte/ex/exedi3.nsf/0/19dd135274ceb842c12586390028507e?OpenDocument&f=1&bm=2";
+    $url = "https://www.psacard.com/auctionprices/soccer-cards/1989-panini-calciatori/diego-armando-maradona/values/2448415";
 
     // get page
     $client = new Client();
     $content = $client->request('GET', $url)->html();
     $crawler = new Crawler($content, null, null);
-    $table = $crawler->filter('#diveddoc > div:nth-child(2) > table')->first()->closest('table');
+    $table = $crawler->filter('#itemResults')->first()->closest('table');
 
     $table->filter('tr')
         ->each(function (Crawler $tr) use (&$firm, &$resArr, &$tempArr) {
 
-            $val = addScrappedTextToArr($tr, 'PLZ/Ort:');
-            list($tempArr, $val) = checkNullAddArr($val, "plz_ort", $tempArr);
+            $lotUrl = $tr->filter("td > a")->attr('href');
 
-            $val = addScrappedTextToArr($tr, 'Objektgröße:');
-            list($tempArr, $val) = checkNullAddArr($val, "objektGroesse", $tempArr);
+            array_push($resArr, $lotUrl);
 
         });
 
-    array_push($resArr, $tempArr);
+    // crawl sub page
+    foreach ($resArr as $el) {
+        $subContent = $client->request('GET', $el)->html();
+        $crawler = new Crawler($subContent, null, null);
+
+        $img = $crawler->filter('#mainContent > div:nth-child(2) > div > div.col-xs-12.col-sm-4.col-sm-pull-8.padding-all.text-center > div > a > img')->attr('src');
+        $item_name = $crawler->filter('#mainContent > div:nth-child(2) > div > div.col-xs-12.col-sm-8.col-sm-push-4.padding-all > h1')->text();
+
+        array_push($resArr, [$item_name, $img]);
+
+    }
 
     var_dump($resArr);
 } catch (Exception $e) {

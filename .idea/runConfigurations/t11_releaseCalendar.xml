@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="t09-scrapLabelEdikte" type="PhpLocalRunConfigurationType" factoryName="PHP Console" path="$PROJECT_DIR$/src/t10-scrapPSAAuctionDetails.php">
+  <configuration default="false" name="t11-releaseCalendar" type="PhpLocalRunConfigurationType" factoryName="PHP Console" path="$PROJECT_DIR$/src/t11-releaseCalendar.php">
     <CommandLine>
       <PhpTestInterpreterSettings>
         <option name="interpreterName" value="PHP 7.4" />
